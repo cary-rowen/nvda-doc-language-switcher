@@ -1,9 +1,69 @@
 (function (root) {
   "use strict";
 
-  const CHINESE_LOCALE = "zh_CN";
   const ENGLISH_LOCALE = "en";
+  const FALLBACK_LOCAL_LOCALE = "zh_CN";
+  const STORAGE_KEY = "nvda-doc-language-switcher-local-locale";
   const SWITCHER_ID = "nvda-doc-language-switcher";
+  const KNOWN_NVDA_LOCALES = new Set([
+    "am",
+    "an",
+    "ar",
+    "bg",
+    "bs",
+    "ca",
+    "cs",
+    "da",
+    "de",
+    "de_CH",
+    "el",
+    "en",
+    "es",
+    "es_CO",
+    "fa",
+    "fi",
+    "fr",
+    "ga",
+    "gl",
+    "he",
+    "hi",
+    "hr",
+    "hu",
+    "id",
+    "is",
+    "it",
+    "ja",
+    "km",
+    "ko",
+    "ky",
+    "mk",
+    "mn",
+    "my",
+    "nb_NO",
+    "ne",
+    "nl",
+    "pl",
+    "pt_BR",
+    "pt_PT",
+    "ro",
+    "ru",
+    "sk",
+    "sl",
+    "sq",
+    "sr",
+    "sv",
+    "ta",
+    "tr",
+    "uk",
+    "vi",
+    "zh_CN",
+    "zh_TW",
+  ]);
+  const DEFAULT_REGIONAL_LOCALES = {
+    nb: "nb_NO",
+    pt: "pt_BR",
+    zh: "zh_CN",
+  };
   const SUPPORTED_DOC_FILES = new Set([
     "changes.html",
     "keyCommands.html",
@@ -78,10 +138,141 @@
     };
   }
 
-  function buildTarget(info) {
+  function normalizeLocale(locale) {
+    if (!locale || typeof locale !== "string") {
+      return "";
+    }
+
+    const parts = locale.trim().replace(/-/g, "_").split("_").filter(Boolean);
+    if (parts.length === 0) {
+      return "";
+    }
+
+    const language = parts[0].toLowerCase();
+    const region = parts
+      .slice(1)
+      .find((part) => /^[a-z]{2}$/i.test(part) || /^\d{3}$/.test(part));
+
+    return region ? `${language}_${region.toUpperCase()}` : language;
+  }
+
+  function resolveAvailableLocale(locale) {
+    const normalizedLocale = normalizeLocale(locale);
+    if (!normalizedLocale || normalizedLocale === ENGLISH_LOCALE) {
+      return null;
+    }
+
+    if (KNOWN_NVDA_LOCALES.has(normalizedLocale)) {
+      return normalizedLocale;
+    }
+
+    const baseLocale = normalizedLocale.split("_")[0];
+    if (baseLocale === ENGLISH_LOCALE) {
+      return null;
+    }
+
+    if (KNOWN_NVDA_LOCALES.has(baseLocale)) {
+      return baseLocale;
+    }
+
+    const regionalLocale = DEFAULT_REGIONAL_LOCALES[baseLocale];
+    if (regionalLocale && KNOWN_NVDA_LOCALES.has(regionalLocale)) {
+      return regionalLocale;
+    }
+
+    return null;
+  }
+
+  function getStoredLocalLocale(win) {
+    try {
+      return (
+        win &&
+        win.localStorage &&
+        normalizeLocale(win.localStorage.getItem(STORAGE_KEY))
+      );
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function rememberCurrentLocale(info, win) {
+    if (!win || info.currentLocale.toLowerCase() === ENGLISH_LOCALE) {
+      return;
+    }
+
+    const locale = normalizeLocale(info.currentLocale);
+    if (!isLanguageSegment(locale)) {
+      return;
+    }
+
+    try {
+      if (win.localStorage) {
+        win.localStorage.setItem(STORAGE_KEY, locale);
+      }
+    } catch (error) {
+      // Storage may be unavailable on some local file pages.
+    }
+  }
+
+  function getPreferredLocalLocale(win) {
+    const storedLocale = getStoredLocalLocale(win);
+    const resolvedStoredLocale = resolveAvailableLocale(storedLocale);
+    if (resolvedStoredLocale) {
+      return resolvedStoredLocale;
+    }
+
+    const languages = (win && win.navigator && win.navigator.languages) || [];
+    const languageCandidates = languages.length
+      ? languages
+      : [win && win.navigator && win.navigator.language].filter(Boolean);
+
+    for (const language of languageCandidates) {
+      const locale = resolveAvailableLocale(language);
+      if (locale) {
+        return locale;
+      }
+    }
+
+    return FALLBACK_LOCAL_LOCALE;
+  }
+
+  function getTargetLocale(info, win) {
     const currentLocale = info.currentLocale.toLowerCase();
-    const targetLocale =
-      currentLocale === ENGLISH_LOCALE ? CHINESE_LOCALE : ENGLISH_LOCALE;
+
+    if (currentLocale === ENGLISH_LOCALE) {
+      return getPreferredLocalLocale(win);
+    }
+
+    return ENGLISH_LOCALE;
+  }
+
+  function formatLocaleForDisplay(locale) {
+    return locale.replace("_", "-");
+  }
+
+  function formatLocaleName(locale) {
+    const localeForDisplay = formatLocaleForDisplay(locale);
+    try {
+      if (typeof Intl !== "undefined" && Intl.DisplayNames) {
+        const displayNames = new Intl.DisplayNames(["en"], {
+          type: "language",
+        });
+        const displayName = displayNames.of(localeForDisplay);
+        if (displayName) {
+          return displayName.charAt(0).toUpperCase() + displayName.slice(1);
+        }
+      }
+    } catch (error) {
+      // Older browsers can fall back to the BCP 47 language tag.
+    }
+
+    return localeForDisplay;
+  }
+
+  function buildTarget(info, win) {
+    const targetLocale = getTargetLocale(info, win);
+    const targetLanguage = formatLocaleForDisplay(targetLocale);
+    const targetLanguageName = formatLocaleName(targetLocale);
     const targetUrl = new URL(info.sourceUrl.href);
     targetUrl.pathname = info.prefixSegments
       .concat([targetLocale], info.documentPath)
@@ -90,16 +281,21 @@
     return {
       href: targetUrl.href,
       label:
-        targetLocale === CHINESE_LOCALE
-          ? "View Chinese version"
-          : "View English version",
-      hreflang: targetLocale === CHINESE_LOCALE ? "zh-CN" : "en",
+        targetLocale === ENGLISH_LOCALE
+          ? "View English version"
+          : `View ${targetLanguageName} version`,
+      hreflang: targetLanguage,
     };
   }
 
-  function buildTargetForHref(href) {
+  function buildTargetForHref(href, win) {
     const info = getDocumentInfo(href);
-    return info ? buildTarget(info) : null;
+    if (!info) {
+      return null;
+    }
+
+    rememberCurrentLocale(info, win);
+    return buildTarget(info, win);
   }
 
   function ensureStyle(doc) {
@@ -140,7 +336,7 @@
       return false;
     }
 
-    const target = buildTargetForHref(win.location.href);
+    const target = buildTargetForHref(win.location.href, win);
     if (!target) {
       return false;
     }

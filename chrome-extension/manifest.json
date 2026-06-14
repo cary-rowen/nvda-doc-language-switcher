@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "NVDA Documentation Language Switcher",
-  "version": "1.1.0",
-  "description": "Add Chinese/English switch links to local, official, and mirror NVDA documentation pages.",
+  "version": "1.2.0",
+  "description": "Adds English and local-language switch links to NVDA documentation pages.",
   "homepage_url": "https://github.com/cary-rowen/nvda-doc-language-switcher",
   "minimum_chrome_version": "88",
   "icons": {

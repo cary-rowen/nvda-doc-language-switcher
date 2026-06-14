@@ -1,57 +1,60 @@
 # NVDA Documentation Language Switcher
 
-Adds an English link to Chinese NVDA documentation pages and a Chinese link to
-English NVDA documentation pages.
+NVDA Documentation Language Switcher is a small Chrome and Edge extension for
+people who read NVDA documentation in more than one language.
 
-Supported documents:
+It adds one accessible language switch link near the top of supported NVDA
+documentation pages. Non-English pages link to the English version. English
+pages link back to the user's preferred local language, using the browser's
+language preferences or the most recently visited non-English NVDA
+documentation language.
+
+## Features
+
+- Adds a plain, keyboard-accessible link directly after the document heading.
+- Preserves the current heading anchor when switching pages.
+- Supports local `file:///` NVDA documentation after the user grants file URL
+  access.
+- Supports official NV Access documentation, historical release documentation,
+  and the NVDA Chinese community mirror.
+- Runs only on supported NVDA documentation pages.
+- Does not collect, store, transmit, sell, or share user data.
+
+## Supported Documents
 
 - `userGuide.html`
 - `keyCommands.html`
 - `changes.html`
 
-Supported locations:
+## Supported Locations
 
-- Local NVDA documentation under `file:///.../NVDA/documentation/...`
+- `file:///.../NVDA/documentation/...`
 - `https://download.nvaccess.org/documentation/...`
 - `https://download.nvaccess.org/releases/.../documentation/...`
 - `https://download.nvaccess.mirror.nvdadr.com/documentation/...`
 - `https://www.nvaccess.org/files/nvda/documentation/...`
 
-## Tampermonkey userscript
-
-Install from:
-
-```text
-https://raw.githubusercontent.com/cary-rowen/nvda-doc-language-switcher/main/nvda-doc-language-switcher.user.js
-```
-
-For local `file:///` NVDA documentation pages, open the browser extension details
-page for Tampermonkey and enable access to file URLs.
-
-## Chrome extension
-
-The Chrome extension source is in `chrome-extension`.
-
-For local testing:
+## Local Installation
 
 1. Open `chrome://extensions` or `edge://extensions`.
 2. Enable developer mode.
 3. Choose "Load unpacked".
 4. Select the `chrome-extension` folder.
-5. Open the extension details and enable access to file URLs if local NVDA
-   documentation should be supported.
+5. To use local NVDA documentation, open the extension details page and enable
+   access to file URLs.
 
-To create the Chrome Web Store upload package:
+## Packaging
+
+Run from the repository root:
 
 ```powershell
 .\scripts\package-chrome-extension.ps1
 ```
 
-The package is written to `dist/` with `manifest.json` at the zip root.
+The Chrome Web Store upload package is written to `dist/`.
 
 Chrome Web Store publishing notes are in `docs/chrome-web-store.md`.
 
 ## Privacy
 
-The extension does not collect, store, transmit, sell, or share user data. See
-`PRIVACY.md`.
+See `PRIVACY.md`.
