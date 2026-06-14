@@ -1,20 +1,3 @@
-// ==UserScript==
-// @name         NVDA documentation Chinese/English switcher
-// @namespace    https://www.nvaccess.org/
-// @version      1.0.0
-// @description  Add Chinese/English switch links to local, official, and mirror NVDA documentation pages.
-// @author       cary
-// @downloadURL  https://raw.githubusercontent.com/cary-rowen/nvda-doc-language-switcher/main/nvda-doc-language-switcher.user.js
-// @updateURL    https://raw.githubusercontent.com/cary-rowen/nvda-doc-language-switcher/main/nvda-doc-language-switcher.user.js
-// @match        https://download.nvaccess.org/*
-// @match        https://download.nvaccess.mirror.nvdadr.com/*
-// @match        https://www.nvaccess.org/files/nvda/documentation/*
-// @include      file://*/documentation/*.html
-// @include      file://*/documentation/*/*.html
-// @run-at       document-end
-// @grant        none
-// ==/UserScript==
-
 (function (root) {
   "use strict";
 
@@ -108,8 +91,8 @@
       href: targetUrl.href,
       label:
         targetLocale === CHINESE_LOCALE
-          ? "\u67e5\u770b\u4e2d\u6587\u7248"
-          : "\u67e5\u770b\u82f1\u6587\u7248",
+          ? "View Chinese version"
+          : "View English version",
       hreflang: targetLocale === CHINESE_LOCALE ? "zh-CN" : "en",
     };
   }
@@ -170,7 +153,7 @@
     link.href = target.href;
     link.textContent = target.label;
     link.hreflang = target.hreflang;
-    link.lang = "zh-CN";
+    link.lang = "en";
 
     nav.appendChild(link);
     ensureStyle(doc);
